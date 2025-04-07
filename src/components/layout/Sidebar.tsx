@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, Search, Database, Mic, 
   FileCheck, ChevronLeft, ChevronRight,
@@ -41,8 +41,29 @@ export function Sidebar() {
   const [expanded, setExpanded] = useState(true);
   const [active, setActive] = useState('Dashboard');
 
+  // Set initial active state based on URL hash when component mounts
+  useEffect(() => {
+    const hash = window.location.hash.slice(1);
+    if (hash) {
+      const matchingItem = navItems.find(item => item.path === `#${hash}`);
+      if (matchingItem) {
+        setActive(matchingItem.name);
+      }
+    }
+  }, []);
+
   const toggleSidebar = () => {
     setExpanded(!expanded);
+  };
+
+  const handleNavigation = (item: typeof navItems[0], e: React.MouseEvent) => {
+    e.preventDefault();
+    setActive(item.name);
+    // Update URL hash without full page reload
+    window.history.pushState(null, '', item.path);
+    
+    // Dispatch a hashchange event so other components can react
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
   };
 
   return (
@@ -54,22 +75,22 @@ export function Sidebar() {
     >
       {/* Logo and collapse button */}
       <div className="flex items-center justify-between p-4">
-        {expanded && (
+        {expanded ? (
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-md bg-brand-500 flex items-center justify-center text-white font-bold">
+            <div className="w-8 h-8 rounded-md bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-bold text-lg">
               t
             </div>
             <span className="font-semibold text-lg">tGPT</span>
           </div>
-        )}
-        {!expanded && (
-          <div className="w-8 h-8 mx-auto rounded-md bg-brand-500 flex items-center justify-center text-white font-bold">
+        ) : (
+          <div className="w-8 h-8 mx-auto rounded-md bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-bold text-lg">
             t
           </div>
         )}
         <button 
           onClick={toggleSidebar}
           className="p-1 rounded-full hover:bg-muted text-muted-foreground"
+          aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
         >
           {expanded ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
         </button>
@@ -88,12 +109,8 @@ export function Sidebar() {
                     ? "bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-300" 
                     : "text-sidebar-foreground hover:bg-muted"
                 )}
-                onClick={(e) => {
-                  e.preventDefault();
-                  setActive(item.name);
-                  // Update URL hash without causing a page reload
-                  window.history.pushState(null, '', item.path);
-                }}
+                onClick={(e) => handleNavigation(item, e)}
+                aria-current={active === item.name ? "page" : undefined}
               >
                 <item.icon size={20} />
                 {expanded && <span>{item.name}</span>}
